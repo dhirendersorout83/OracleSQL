@@ -291,3 +291,56 @@ from xx_emp;
 ---
 --cLSUTER INDEX
 --HASH FUNCTION
+
+
+--ROLLUP, CUBE ARE GROUPING FUNCITON. IT USED TO DISPLAY THE TOTAL SUM OF COLUMN VALUES AT BOTTOM
+select deptno,job,SUM(sal),COUNT(1)
+from emp
+GROUP BY ROLLUP(DEPTNO,JOB);
+
+-- FIRST AND LAST
+If you omit the OVER clause, then the FIRST and LAST functions are treated as aggregate functions. You can use these functions as analytic functions by specifying the OVER clause. The query_partition_clause is the only part of the OVER clause valid with these functions. If you include the OVER clause but omit the query_partition_clause, then the function is treated as an analytic function, but the window defined for analysis is the entire table.
+
+The aggregate_function argument is any one of the MIN, MAX, SUM, AVG, COUNT, VARIANCE, or STDDEV functions. It operates on values from the rows that rank either FIRST or LAST. If only one row ranks as FIRST or LAST, then the aggregate operates on a singleton (nonaggregate) set.
+
+The KEEP keyword is for semantic clarity. It qualifies aggregate_function, indicating that only the FIRST or LAST values of aggregate_function will be returned.
+
+DENSE_RANK FIRST or DENSE_RANK LAST indicates that Oracle Database will aggregate over only those rows with the minimum (FIRST) or the maximum (LAST) dense rank (also called olympic rank).
+
+select DEPTNO
+,MIN(SAL) KEEP(DENSE_RANK FIRST ORDER BY COMM) WORST
+,MAX(SAL) KEEP(DENSE_RANK LAST ORDER BY COMM) BEST
+from emp
+GROUP BY DEPTNO;
+
+
+---------------------------------------------------------
+FIRST_VALUE
+FIRST_VALUE is an analytic function. It returns the first value in an ordered set of values. If the first value in the set is null, then the function returns NULL unless you specify IGNORE NULLS. This setting is useful for data densification.
+{RESPECT | IGNORE} NULLS determines whether null values of expr are included in or eliminated from the calculation. The default is RESPECT NULLS. If you specify IGNORE NULLS, then FIRST_VALUE returns the first non-null value in the set, or NULL if all values are null.
+
+
+Examples
+The following example selects, for each employee in Department 90, the name of the employee with the lowest salary.
+SELECT department_id, last_name, salary,
+       FIRST_VALUE(last_name)
+         OVER (ORDER BY salary ASC ROWS UNBOUNDED PRECEDING) AS lowest_sal
+  FROM (SELECT * FROM employees
+          WHERE department_id = 90
+          ORDER BY employee_id)
+  ORDER BY last_name;
+  SELECT DEPTNO,ENAME,SAL
+,FIRST_VALUE(ENAME) OVER(PARTITION BY DEPTNO ORDER BY SAL) LOWEST_SAL
+FROM EMP;
+
+The example illustrates the nondeterministic nature of the FIRST_VALUE function. Kochhar and DeHaan have the same salary, so are in adjacent rows. Kochhar appears first because the rows returned by the subquery are ordered by employee_id. However, if the rows returned by the subquery are ordered by employee_id in descending order
+
+The following example shows how to make the FIRST_VALUE function deterministic by ordering on a unique key.
+SELECT department_id, last_name, salary, hire_date,
+       FIRST_VALUE(last_name)
+         OVER (ORDER BY salary ASC, hire_date ROWS UNBOUNDED PRECEDING) AS fv
+  FROM (SELECT * FROM employees 
+          WHERE department_id = 90
+          ORDER BY employee_id DESC)
+  ORDER BY last_name;
+  
