@@ -390,3 +390,20 @@ over(partition by deptno order by mgr
 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) nv
 from emp
 group by deptno,mgr;
+
+
+-----------------------------------------------------------------------------------
+RATIO_TO_REPORT
+RATIO_TO_REPORT is an analytic function. It computes the ratio of a value to the sum of a set of values. If expr evaluates to null, then the ratio-to-report value also evaluates to null.
+
+The set of values is determined by the query_partition_clause. If you omit that clause, then the ratio-to-report is computed over all rows returned by the query.
+
+You cannot nest analytic functions by using RATIO_TO_REPORT or any other analytic function for expr. However, you can use other built-in function expressions for expr. Refer to "About SQL Expressions" for information on valid forms of expr.
+
+The following example calculates the ratio-to-report value of each purchasing clerk's salary to the total of all purchasing clerks' salaries:
+SELECT last_name, salary, RATIO_TO_REPORT(salary) OVER () AS rr
+   FROM employees
+   WHERE job_id = 'PU_CLERK'
+   ORDER BY last_name, salary, rr;
+   
+
