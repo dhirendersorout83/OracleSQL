@@ -1,0 +1,293 @@
+Q. print the updated empno for salary increase base on condition?
+Anw. By using bulk collect and sql%bulk_rowcount attribute
+SET SERVEROUTPUT ON;
+DECLARE 
+CURSOR C1 IS select EMPNO from xx_emp;
+TYPE TBL_TYPE IS RECORD(EMPNO NUMBER);
+TYPE TBL IS TABLE OF TBL_TYPE INDEX BY PLS_INTEGER;
+R_TBL TBL;
+BEGIN
+
+OPEN C1 ;
+FETCH C1 bulk collect INTO R_TBL;
+close c1;
+
+FORALL X IN 1..R_TBL.COUNT SAVE EXCEPTIONS
+UPDATE xx_emp a SET SAL=SAL*110/100
+where ( select count(distinct SAL) from xx_emp b
+                                    where b.sal <= A.SAL) <=3 and a.empno=R_TBL(x).empno;
+
+  FOR i IN 1 .. R_TBL.count LOOP
+  if SQL%BULK_ROWCOUNT(i) <> 0 then
+    DBMS_OUTPUT.put_line('Empno : ' || R_TBL(1).empno ||' Rows affected: ' || SQL%BULK_ROWCOUNT(i) );
+  end if;
+  END LOOP;
+
+EXCEPTION WHEN OTHERS THEN
+  FOR I IN 1..SQL%BULK_EXCEPTIONS.COUNT
+  LOOP
+    dbms_output.put_line('Error ' || i || ' occurred during '||'iteration ' || SQL%BULK_EXCEPTIONS(i).ERROR_INDEX);
+    dbms_output.put_line('Oracle error is ' || SQLERRM( -SQL%BULK_EXCEPTIONS(i).ERROR_CODE) );
+    dbms_output.put_line('Empno ' || R_TBL(SQL%BULK_EXCEPTIONS(i).ERROR_INDEX).empno );
+  END LOOP;
+
+END;
+
+Q2. List of least 5 or top salaried persons ?
+least
+select * from xx_emp a where ( select count(distinct SAL) from xx_emp b
+                                    where b.sal <= A.SAL) <=3;
+top
+select * from xx_emp a where ( select count(distinct SAL) from xx_emp b
+                                    where b.sal >= A.SAL) <=3;
+Q3. Example of bulk_exceptions 
+SET SERVEROUTPUT ON;
+DECLARE 
+CURSOR C1 IS select EMPNO from xx_emp a where ( select count(distinct SAL) from xx_emp b
+                                    where b.sal <= A.SAL) <=3;
+TYPE TBL_TYPE IS RECORD(EMPNO NUMBER);
+TYPE TBL IS TABLE OF TBL_TYPE INDEX BY PLS_INTEGER;
+R_TBL TBL;
+BEGIN
+--UPDATE XX_EMP A SET SAL=SAL*110/100 
+--where ( select count(distinct SAL) from xx_emp b
+--                                    where b.sal <= A.SAL) <=3;
+OPEN C1 ;
+FETCH C1 bulk collect INTO R_TBL;
+close c1;
+FORALL X IN 1..R_TBL.COUNT SAVE EXCEPTIONS
+UPDATE XX_EMP SET SAL=SAL*110/100
+WHERE EMPNO=R_TBL(X).empno;
+
+  FOR i IN 1 .. R_TBL.count LOOP
+    DBMS_OUTPUT.put_line('Element: ' || R_TBL(1).empno ||
+      ' Rows affected: ' || SQL%BULK_ROWCOUNT(i));
+  END LOOP;
+
+EXCEPTION WHEN OTHERS THEN
+  FOR I IN 1..SQL%BULK_EXCEPTIONS.COUNT
+  LOOP
+    dbms_output.put_line('Error ' || i || ' occurred during '||'iteration ' || SQL%BULK_EXCEPTIONS(i).ERROR_INDEX);
+    dbms_output.put_line('Oracle error is ' || SQLERRM( -SQL%BULK_EXCEPTIONS(i).ERROR_CODE) );
+    dbms_output.put_line('Empno ' || R_TBL(SQL%BULK_EXCEPTIONS(i).ERROR_INDEX).empno );
+  END LOOP;
+
+
+END;
+
+Q4. SELECT EMP WHO JOINED IN THE MONTH OF DEC
+Ans. SELECT * FROM XX_EMP WHERE EXTRACT(MONTH FROM HIREDATE)=12;
+Q5. Pregma ?
+
+Q6. Level and connect by ?
+Ans. Syntax:
+Select level
+From table
+Start with –optional
+Connect by col1=col2 – columns by which record1 would connect  with records2. We use prior with coloumn. If don’t use prior column would connect of same record.
+
+There are pseudo columns: connect_by_iscyclic(can use with nocycle with connect by clause), connect_by_root, SYS_CONNECT_BY_PATH
+
+SELECT EMPNO,jOB, MGR,(SELECT JOB FROM XX_EMP WHERE EMPNO=E.MGR) MGR_JOB,CONNECT_BY_ROOT JOB
+,CONNECT_BY_ISCYCLE,SYS_CONNECT_BY_PATH(JOB, '/'), LEVEL
+FROM xx_emp E
+WHERE 1=1 AND LEVEL>1
+START WITH MGR IS NULL
+CONNECT BY NOCYCLE  prior EMPNO = MGR
+--and ename !='KING' and job!='CLERK'
+;
+SELECT ENAME "Employee", CONNECT_BY_ROOT ENAME "Manager",
+   LEVEL-1 "Pathlen", SYS_CONNECT_BY_PATH(ENAME, '/') "Path"
+   FROM XX_EMP
+   WHERE LEVEL > 1 and DEPTNO = 30
+   CONNECT BY PRIOR EMPNO = MGR;
+SELECT  Mname,SUM(SAL) FROM(    
+   SELECT DEPTNO,EMPNO,ENAME,JOB,SAL,MGR,CONNECT_BY_ROOT DEPTNO as MDEPTNO
+   ,CONNECT_BY_ROOT EMPNO as MEMPNO,CONNECT_BY_ROOT ENAME as Mname,PRIOR SAL MGRSAL,LEVEL-1,SYS_CONNECT_BY_PATH(ENAME,'/') PATH
+      FROM XX_EMP
+      WHERE DEPTNO = 30 AND LEVEL>1
+      CONNECT BY NOCYCLE PRIOR EMPNO = MGR
+      ) GROUP BY Mname;
+
+Q7. Find the emp having immediate joining after a particular joining / having less salary or both?
+Ans.
+select distinct empno,sal,hiredate,x from(   
+SELECT empno,deptno,ENAME "Employee",HIREDATE,prior hiredate phiredate, sal,level x,connect_by_iscycle
+   FROM XX_EMP
+   WHERE 1=1 
+--   and LEVEL <3 
+--   and DEPTNO = 30
+   start with sal = 1250
+   CONNECT BY  nocycle sal < PRIOR sal
+   and  hiredate < prior hiredate
+   );
+
+Q8. List the enames who are retiring after ’31-DEC-89’ the max job period is 20Y.
+Select empno, ename, hiredate, sysdate,
+months_between(sysdate,hiredate)/12 Exp from emp
+where months_between(sysdate,hiredate)/12 > 20
+order by hiredate ;
+
+Q9. List the emps those who joined in company before 15th of the month.
+Ans.
+Q10. Write a query to return the day of the week for any date entered in format ‘DD-MM-YY’
+Ans. select to_char(hiredate, 'DAY') from xx_emp ;
+Q11. Emps hired on or before 15th of any month are paid on the last Friday of that month. Those hired after 15th are paid on the first Friday of the following month. Print a list of emps, their hiredate and the first pay date. Sort on hiredate.
+Ans. SELECT NEXT_DAY(SYSDATE ,'monday'),
+NEXT_DAY(LAST_DAY( SYSDATE ),2),
+LAST_DAY( SYSDATE ) - INTERVAL '7' DAY,
+NEXT_DAY(LAST_DAY( SYSDATE ) - INTERVAL '7' DAY,'FRIDAY')
+FROM   DUAL;
+
+
+-- oracle analytic functions
+--avg *
+-- 
+--Some analytic functions allow the windowing_clause. In the listing of analytic functions at the end of this section, the functions that allow the windowing_clause are followed by an asterisk (*).
+--
+--
+-- avg*
+select empno,sal,deptno, avg(sal) over (partition by deptno order by deptno 
+rows between unbounded preceding and unbounded following) avg_sal_dept
+from xx_emp;
+-- or  remove the windowing option for calculate avg over pertion by clause
+select empno,sal,deptno, avg(sal) over (partition by deptno order by deptno ) avg_sal_dept
+from xx_emp;
+
+
+--Corr* (how to veriable are related to each other +1 and -1)
+select empno,sal,deptno,to_char((sysdate-hiredate) year to month) "yrs-mnths",
+  corr(sysdate-hiredate,sal) over(partition by deptno) correlation
+  from xx_emp;
+  
+--count*
+SELECT last_name, salary,
+       COUNT(*) OVER (ORDER BY salary RANGE BETWEEN 50 PRECEDING AND
+                      150 FOLLOWING) AS mov_count
+  FROM employees
+  ORDER BY salary, last_name;
+-- covar_pop and covar_samp
+SELECT product_id, supplier_id,
+       COVAR_POP(list_price, min_price) 
+         OVER (ORDER BY product_id, supplier_id)
+         AS CUM_COVP,
+       COVAR_SAMP(list_price, min_price)
+         OVER (ORDER BY product_id, supplier_id)
+         AS CUM_COVS 
+  FROM product_information p
+  WHERE category_id = 29
+  ORDER BY product_id, supplier_id;
+--CUME_DIST
+select deptno,sal,empno,cume_dist() over(partition by deptno order by sal) as cume_dist
+from xx_emp;
+
+--dense_rank: gives the rank of employee having sal 5000
+--aggregate 
+select dense_rank(3000) within group (order by sal desc) xx
+from xx_emp;
+select dense_rank(3000,.05) within group (order by sal desc,comm) xx
+from xx_emp;
+  --analytic
+  select deptno,empno,sal,dense_rank() over(order by sal desc) rank
+  from xx_emp;
+  select deptno,empno,sal,dense_rank() over(partition by deptno order by sal desc) rank
+  from xx_emp;
+  --top 5 sal
+  select * from (select deptno,empno,sal,dense_rank() over(order by sal desc) rank
+  from xx_emp) where rank<=5;
+
+-- first
+SELECT deptno,
+       MIN(sal) KEEP (DENSE_RANK FIRST ORDER BY comm) "Worst",
+       MAX(sal) KEEP (DENSE_RANK LAST ORDER BY comm) "Best"
+  FROM xx_emp
+  GROUP BY deptno
+  ORDER BY deptno;
+  select * from xx_emp;
+  
+  --first_value*: FOR FIRST_VALUE RANGE CLAUSE NOT REQUIRE BECAUSE FIRST ROW RETURN IS ALWAYS MIN SAL
+  -- BUT FOR LAST_VALUE WE NEED RANGE CLAUSE to scan the last row in subset. without range we can not scan the last row
+  select deptno,sal,empno,ename,FIRST_value(ename) over(partition by deptno order by SAL DESC )
+  from xx_emp WHERE DEPTNO=30;
+  
+  SELECT deptno, ename, sal,
+       FIRST_VALUE(ename)
+         OVER (ORDER BY sal ASC ROWS UNBOUNDED PRECEDING) AS lowest_sal
+  FROM (SELECT * FROM xx_emp
+          WHERE deptno = 30
+          ORDER BY empno)
+  ORDER BY ename;
+  
+  SELECT deptno, ename, sal,
+       FIRST_VALUE(ename)
+         OVER (ORDER BY sal ASC ROWS UNBOUNDED PRECEDING) AS lowest_sal
+  FROM (SELECT * FROM xx_emp
+          WHERE deptno = 10
+         ORDER BY empno )
+  ORDER BY ename;  
+--LAST_VALUE*
+  SELECT deptno, ename, sal,
+       LAST_VALUE(ename)
+         OVER (ORDER BY sal ASC range BETWEEN  UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING ) AS HIGH_sal
+  FROM (SELECT * FROM xx_emp
+          WHERE deptno = 10
+          ORDER BY empno )
+  ORDER BY ename;   
+  
+--  LAG provides access to a row at a given physical offset prior to that position.
+select  deptno,empno,sal,hiredate, lag(sal,1,0) over( order by hiredate) as pre_sal
+from xx_emp
+where 1=1
+order by HIREDATE;
+--  LAG provides access to a row at a given physical offset next to that position.
+select  deptno,empno,sal,hiredate, lead(sal,1,0) over( partition by deptno order by hiredate) as pre_sal
+from xx_emp
+where 1=1
+--and deptno=10
+order by deptno;
+  
+--- max*  
+SELECT mgr, ename,empno, sal,
+       MAX(sal) OVER (PARTITION BY mgr) AS mgr_max
+  FROM xx_emp
+  ORDER BY mgr, ename, sal;  
+select * from(SELECT mgr, ename,empno, sal,
+       MAX(sal) OVER (PARTITION BY mgr) AS mgr_max
+  FROM xx_emp
+  ) where sal = mgr_max;
+
+--nth_value, here we are using min function so use group by 
+SELECT deptno, empno,sal, MIN(sal),
+    NTH_VALUE(min(sal), 3) OVER (PARTITION BY deptno ORDER BY sal
+    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) nv
+  FROM xx_emp
+  WHERE 1=1
+  GROUP BY deptno, empno,sal;
+  
+--RATIO_TO_REPORT RATIO_TO_REPORT is an analytic function. It computes the ratio of a value to the sum of a set of values. If expr evaluates to null, then the ratio-to-report value also evaluates to null.
+select deptno,empno,sal,ratio_to_report(sal) over(partition by deptno ) rr,
+sum(sal) over(partition by deptno) s_d
+from xx_emp;
+
+
+--stddev
+select empno,hiredate,sal,stddev(sal) over (order by hiredate ),avg(sal) over(partition by deptno)
+,stddev(sal) over (order by hiredate )-avg(sal) over(partition by deptno) diff
+from xx_emp where deptno='30' order by hiredate;
+
+select stddev(sal),variance(sal),avg(sal)
+from xx_emp where deptno='30';
+
+-------------Analytic functions having Within group (order by ) --clause   
+--listagg
+--agg
+select deptno,listagg(ename,';') within group (order by deptno,empno) demp
+from xx_emp
+group by deptno;
+--analytic
+select deptno,ename,sal,listagg(ename,';') within group (order by deptno) over (partition by deptno) demp
+from xx_emp;  
+
+---
+--cLSUTER INDEX
+--HASH FUNCTION
