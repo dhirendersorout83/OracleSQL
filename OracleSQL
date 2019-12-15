@@ -75,7 +75,7 @@ EXCEPTION WHEN OTHERS THEN
 
 END;
 
-Q4. SELECT EMP WHO JOINED IN THE MONTH OF DEC
+Q4. SELECT EMP WHO JOINED IN THE MOnth OF DEC
 Ans. SELECT * FROM XX_EMP WHERE EXTRACT(MONTH FROM HIREDATE)=12;
 Q5. Pregma ?
 
@@ -343,4 +343,24 @@ SELECT department_id, last_name, salary, hire_date,
           WHERE department_id = 90
           ORDER BY employee_id DESC)
   ORDER BY last_name;
+  
+
+
+------------------------------------------------------------------
+Max
+The following example calculates, for each employee, the highest salary of the employees reporting to the same manager as the employee.
+SELECT manager_id, last_name, salary,
+       MAX(salary) OVER (PARTITION BY manager_id) AS mgr_max
+  FROM employees
+  ORDER BY manager_id, last_name, salary;
+  
+If you enclose this query in the parent query with a predicate, then you can determine the employee who makes the highest salary in each department:
+
+SELECT manager_id, last_name, salary
+  FROM (SELECT manager_id, last_name, salary, 
+               MAX(salary) OVER (PARTITION BY manager_id) AS rmax_sal
+          FROM employees)
+  WHERE salary = rmax_sal
+  ORDER BY manager_id, last_name, salary;
+  
   
