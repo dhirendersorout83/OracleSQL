@@ -1,0 +1,44 @@
+/* Q1a*/
+ select d.name, count(1) as tot_emp_count,
+ sum(e.salary) as tot_emp_salary
+ from employees e, departments d
+ where d.id=e.department_id
+ group by d.name;
+ 
+ /* Q1b*/
+ select a.name,b.transaction_date, 
+ sum(store_sales) over(order by a.name, b.transaction) as sum_of_sales
+ from stores a, sales b
+ where a.store_id=b.staore_id
+ group by a.name,b.transaction_Date
+ order by b.transaction_date
+ 
+ /*Q1c */
+ select a.id,a.first_name,a.last_name,a.department_id,
+ sum(a.salary) over(order by a.department_id) as sum_salary
+ from employees a
+ order by a.department_id
+ 
+ /* Q1d */
+ select a.state,sum(units_sold) as units_sold
+ from stores a, slaes b
+ where a.store_id=b.store_id
+ group by a.state
+ 
+ 
+ Average Salary
+Consider the following table named salary containing the details of employee salary of the employees in an organisation along with their department names. Find the name of the department having the maximum average salary.
+
+Joining Date
+Consider the table employee having the following columns
+
+employee_id : storing the unique id of the employee
+employee_name : storing the name of the employee
+designation : storing the designation of the employee
+joining_date : storing the date employee joined the organisation in YYYY-MM-DD format
+
+Write a query to print the name of the employees in the order they joined the organisation. In case two people have joined the organisation in the same year, the person higher in the organisational heirarchy should appear first.
+
+CEO - First level
+Department Head - Second level
+Regional Manager - Third level
