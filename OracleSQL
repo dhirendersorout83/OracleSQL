@@ -364,3 +364,29 @@ SELECT manager_id, last_name, salary
   ORDER BY manager_id, last_name, salary;
   
   
+-----------------------------------------------------------------------------
+NTH_VALUE
+NTH_VALUE returns the measure_expr value of the nth row in the window defined by the analytic_clause. The returned value has the data type of the measure_expr.
+{RESPECT | IGNORE} NULLS determines whether null values of measure_expr are included in or eliminated from the calculation. The default is RESPECT NULLS.
+
+n determines the nth row for which the measure value is to be returned. n can be a constant, bind variable, column, or an expression involving them, as long as it resolves to a positive integer. The function returns NULL if the data source window has fewer than n rows. If n is null, then the function returns an error.
+
+FROM {FIRST | LAST} determines whether the calculation begins at the first or last row of the window. The default is FROM FIRST.
+
+If you omit the windowing_clause of the analytic_clause, it defaults to RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW. This default sometimes returns an unexpected value for NTH_VALUE ... FROM LAST ... , because the last value in the window is at the bottom of the window, which is not fixed. It keeps changing as the current row changes. For expected results, specify the windowing_clause as RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING. Alternatively, you can specify the windowing_clause as RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING.
+
+The following example shows the minimum amount_sold value for the second channel_id in ascending order for each prod_id between 13 and 16:
+SELECT prod_id, channel_id, MIN(amount_sold),
+    NTH_VALUE(MIN(amount_sold), 2) OVER (PARTITION BY prod_id ORDER BY channel_id
+    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) nv
+  FROM sales
+  WHERE prod_id BETWEEN 13 and 16
+  GROUP BY prod_id, channel_id;
+
+Following example show second min salary department wise for each manager
+select deptno,mgr,min(sal)
+,nth_value(min(sal),2) 
+over(partition by deptno order by mgr 
+ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) nv
+from emp
+group by deptno,mgr;
