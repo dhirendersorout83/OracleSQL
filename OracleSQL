@@ -344,7 +344,23 @@ SELECT department_id, last_name, salary, hire_date,
           ORDER BY employee_id DESC)
   ORDER BY last_name;
   
+NOTE: WINDOW clause 'ROWS UNBOUNDED PRECEDING' means from currnt row to first row in dataset. 
+Following query give wring result
 
+SELECT deptno, ename, sal
+--,dense_rank() over(partition by deptno order by sal) rank
+, LAST_VALUE(sal)
+         OVER (PARTITION BY DEPTNO ORDER BY sal ASC ROWS UNBOUNDED PRECEDING) AS rr
+--,(sal - last_value(sal) OVER(partition by deptno order by sal)) AS DiffFromMax
+   FROM emp
+   WHERE 1=1
+   order by deptno,empno
+;
+
+NOTE: for LAST_VALUE , window cluase must had upper bound in dataset like below:
+LAST_VALUE(sal)
+         OVER (PARTITION BY DEPTNO ORDER BY sal ASC ROWS between UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+         
 
 ------------------------------------------------------------------
 Max
