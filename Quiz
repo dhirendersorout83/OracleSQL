@@ -30,6 +30,7 @@
 Consider the following table named salary containing the details of employee salary of the employees in an organisation along with their department names. Find the name of the department having the maximum average salary.
 
 Joining Date
+----------------------------------------------
 Consider the table employee having the following columns
 
 employee_id : storing the unique id of the employee
@@ -42,3 +43,9 @@ Write a query to print the name of the employees in the order they joined the or
 CEO - First level
 Department Head - Second level
 Regional Manager - Third level
+
+SELECT ename,job,hiredate,to_char(hiredate,'YYYY')
+,decode(job,'PRESIDENT','1','MANAGER','2','ANALYST','3','SALESMAN','4','CLERK','5') jobrank
+   FROM emp
+   WHERE 1=1
+   order by to_char(hiredate,'YYYY'),jobrank,hiredate;
