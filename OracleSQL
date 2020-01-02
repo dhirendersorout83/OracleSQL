@@ -474,5 +474,45 @@ Europe               Western Europe                     566.39          0
 Europe               Western Europe                     566.39          1 */
 --To ensure that only rows with GROUP_ID < 1 are returned, add the following HAVING clause to the end of the statement :
 
+Nth_Value
+---------------------
+Purpose
+
+NTH_VALUE returns the measure_expr value of the nth row in the window defined by the analytic_clause. The returned value has the data type of the measure_expr.
+
+{RESPECT | IGNORE} NULLS determines whether null values of measure_expr are included in or eliminated from the calculation. The default is RESPECT NULLS.
+
+n determines the nth row for which the measure value is to be returned. n can be a constant, bind variable, column, or an expression involving them, as long as it resolves to a positive integer. The function returns NULL if the data source window has fewer than n rows. If n is null, then the function returns an error.
+
+FROM {FIRST | LAST} determines whether the calculation begins at the first or last row of the window. The default is FROM FIRST.
+
+If you omit the windowing_clause of the analytic_clause, it defaults to RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW.
+example
+select deptno,empno,sal,min(sal),nth_value(min(sal),3) over(partition  by deptno order by sal 
+RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED following) nth
+from emp group  by deptno,empno,sal order by deptno;
+  
+Cume_dist()
+----------
+Purpose
+
+CUME_DIST calculates the cumulative distribution of a value in a group of values. The range of values returned by CUME_DIST is >0 to <=1. Tie values always evaluate to the same cumulative distribution value.
+This function takes as arguments any numeric data type or any nonnumeric data type that can be implicitly converted to a numeric data type. Oracle Database determines the argument with the highest numeric precedence, implicitly converts the remaining arguments to that data type, makes the calculation, and returns NUMBER.
+As an aggregate function, CUME_DIST calculates, for a hypothetical row r identified by the arguments of the function and a corresponding sort specification, the relative position of row r among the rows in the aggregation group. Oracle makes this calculation as if the hypothetical row r were inserted into the group of rows to be aggregated over. The arguments of the function identify a single hypothetical row within each aggregate group. Therefore, they must all evaluate to constant expressions within each aggregate group. The constant argument expressions and the expressions in the ORDER BY clause of the aggregate match by position. Therefore, the number of arguments must be the same and their types must be compatible.
+
+As an analytic function, CUME_DIST computes the relative position of a specified value in a group of values. For a row r, assuming ascending ordering, the CUME_DIST of r is the number of rows with values lower than or equal to the value of r, divided by the number of rows being evaluated (the entire query result set or a partition).
+
+eg.
+SELECT CUME_DIST(15500, .05) WITHIN GROUP
+  (ORDER BY salary, commission_pct) "Cume-Dist of 15500" 
+  FROM employees;
+  
+  
+  SELECT job_id, last_name, salary, CUME_DIST() 
+  OVER (PARTITION BY job_id ORDER BY salary) AS cume_dist
+  FROM employees
+  WHERE job_id LIKE 'PU%'
+  ORDER BY job_id, last_name, salary, cume_dist;
+
 -- Use of Objects
 -- pipelined functions
